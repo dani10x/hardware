@@ -1,0 +1,23 @@
+<nb-card>
+  <nb-card-header>
+    <span>Compresor</span>
+  </nb-card-header>
+  <nb-card-body>
+    <form [formGroup]="archivoForm">
+      <div class="row">
+        <div class="col-sm-6">
+          <span>Ingrese su archivo en formato .txt, el compresor lo regresará en .bin</span>
+        </div>
+        <div class="col-sm-6">
+          <label for="archivo" class="label">Ingrese su archivo</label>
+          <input type="file" name="archivo" id="archivo" nbInput placeholder="Ingrese su archivo" fullWidth formControlName="archivo">
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-sm-12">
+          <button nbButton (click)="comprimir()" status="default">Comprimir</button>
+        </div>
+      </div>
+    </form>
+  </nb-card-body>
+</nb-card>
