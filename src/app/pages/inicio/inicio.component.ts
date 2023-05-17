@@ -10,24 +10,43 @@ import { HuffmanNode } from 'src/app/models/huffmanNode.model';
 export class InicioComponent {
 
   archivoForm: FormGroup;
+  mapa: Map<string, string>;
 
   constructor(private fb: FormBuilder) {
     this.archivoForm = this.fb.group({
-      archivo: ['', Validators.required],
+      archivoTxt: [''],
+      archivoBin: [''],
     });
+    this.mapa = new Map<string, string>;
   }
 
   public comprimir(): void {
-    const fileInput = document.getElementById('archivo') as HTMLInputElement;
+    const fileInput = document.getElementById('archivoTxt') as HTMLInputElement;
     this.stringDocumento(fileInput).then((val) => {
       const [compressedData, codeMap] = this.compressUsingHuffman(val);
+      this.mapa = codeMap;
+      console.log(compressedData);
       const uint8Array = new Uint8Array(compressedData.length / 8);
       for (let i = 0; i < compressedData.length; i += 8) {
         const byte = compressedData.substr(i, 8);
         uint8Array[i / 8] = parseInt(byte, 2);
       }
-      this.downloadBinaryFile(uint8Array, 'compressed.bin');
+      this.downloadBinaryFile(uint8Array, 'comprimido.bin');
     });
+  }
+
+  public async descomprimir(): Promise<void> {
+    const fileInput = document.getElementById('archivoBin') as HTMLInputElement;
+    const compressedData = await this.readBinaryFile(fileInput);
+    const compressedString = Array.from(compressedData, (byte) => byte.toString(2).padStart(8, '0')).join('');
+    const texto: String = this.decompressUsingHuffman(compressedString);
+    const uint8Array = new Uint8Array(texto.length);
+    for (let i = 0; i < texto.length; i++) {
+      uint8Array[i] = texto.charCodeAt(i);
+    }
+
+    this.downloadBinaryFile(uint8Array, 'decompressed.txt');
+
   }
 
   private stringDocumento(fileInput: HTMLInputElement): Promise<string> {
@@ -130,6 +149,54 @@ export class InicioComponent {
     link.click();
 
     URL.revokeObjectURL(url);
+  }
+
+  private decompressUsingHuffman(compressedData: string): string {
+    console.log(this.mapa);
+    console.log(compressedData);
+    let decompressedData = '';
+    let currentCode = '';
+
+    for (let i = 0; i < compressedData.length; i++) {
+      currentCode += compressedData[i];
+      const char = Array.from(this.mapa.entries()).find(([, code]) => code === currentCode);
+
+      if (char) {
+        decompressedData += char[0];
+        currentCode = '';
+      }
+    }
+
+    return decompressedData;
+  }
+
+  private readBinaryFile(fileInput: HTMLInputElement): Promise<Uint8Array> {
+    return new Promise((resolve, reject) => {
+      const file = fileInput.files?.[0];
+
+      if (!file) {
+        reject(new Error('No se seleccionó ningún archivo.'));
+        return;
+      }
+
+      const reader = new FileReader();
+
+      reader.onload = (event) => {
+        try {
+          const arrayBuffer = event.target?.result as ArrayBuffer;
+          const uint8Array = new Uint8Array(arrayBuffer);
+          resolve(uint8Array);
+        } catch (error) {
+          reject(error);
+        }
+      };
+
+      reader.onerror = (event) => {
+        reject(new Error('Error al leer el archivo.'));
+      };
+
+      reader.readAsArrayBuffer(file);
+    });
   }
 
 }
